@@ -1,0 +1,25 @@
+Package: DiffTestR
+Title: Testing Differential Expression from AP-DIA-MS datasets 
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Moritz",
+           family = "Heusel",
+           role = c("aut", "cre"),
+           email = "moritz.heusel@med.lu.se",
+           comment = c(ORCID = "0000-0002-8506-530X"))
+Description: Convenience functions to test differential peptide and protein abundance from AP-DIA-MS datasets, from import over normalization, filtering based on frequency of observation to imputation of missing values and, finally, statistical differential expression testing on peptide- followed by rollup to protein level, 
+License: `use_mit_license()`
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+Depends: 
+    R (>= 3.50)
+Imports:
+    data.table,
+    ggplot2,
+    corrplot,
+    pheatmap,
+    ggrepel,
+    reshape2,
+    limma
