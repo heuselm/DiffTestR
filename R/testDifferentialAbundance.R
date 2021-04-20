@@ -383,7 +383,7 @@ testDifferentialAbundance <- function(input_dt = "../../Collaborations/Patras_MU
 
   # do multiple testing correction
   pcorr = unique(res[, .(Protein.Group, p_value_protein)])
-  pcorr[, p_value_BHadj_protein:=p.adjust(p_value_protein)]
+  pcorr[, p_value_BHadj_protein:=p.adjust(p_value_protein, method = "BH")]
   # Add corrected pvalues
   res = merge(res, pcorr[, .(Protein.Group, p_value_BHadj_protein)], by = "Protein.Group")
 
