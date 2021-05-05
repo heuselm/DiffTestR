@@ -1,6 +1,6 @@
 #' Test Differential Protein Expression in MS proteomics data
 #'
-#' @description Test Differential Protein Expression in MS proteomics data
+#' @description Test Differential Protein Expression in MS proteomics data starting small: From the precursor level.
 #'
 #' @param input_dt Input data table either in tsv/txt format or already in R as data.table or data.frame with the following columns:
 #' #' The table should have the following columns:
@@ -52,24 +52,9 @@
 #'
 #' @export
 
-# # load packages
-# library(data.table)
-# library(ggplot2)
-# library(corrplot)
-# library(pheatmap)
-# library(ggrepel)
-# library(reshape2)
-
-
-####################################################################################################
-## Set parameters
-####################################################################################################
-# dataset
-
-
-testDifferentialAbundance <- function(input_dt = "../../Collaborations/Patras_MUVCOL/PR3_production/results/02_DIANN1711_LFeCLib_Pass2/02_DIANN1711_LFeCLib_Pass2.pr_matrix.tsv",
+testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
                                       protein_group_annotation = NULL,
-                                      study_design = "../../Collaborations/Patras_MUVCOL/PR3_production/data/study_design_fake_test.txt",
+                                      study_design = "path/to/Study_design_filled.tsv",
 
                                       # select conditions to be compared
                                       condition_1 = unique(fread(study_design)$condition)[2],
