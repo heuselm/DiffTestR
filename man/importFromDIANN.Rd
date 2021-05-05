@@ -7,6 +7,7 @@
 importFromDIANN(
   path_to_result = "../../04_DIANN_LfMS1/DIANN_LfMS1-Pass2.tsv",
   quant_value_col = "Precursor.Quantity",
+  write_study_design_template = TRUE,
   study_design = "../../04_DIANN_LfMS1/Study_design.txt"
 )
 }
@@ -16,7 +17,9 @@ importFromDIANN(
 \item{quant_value_col}{The name of the column containing precursor level quant
 values to use. Typically Precursor.Quantity or Precursor.Normalised}
 
-\item{study_design}{Study design in tab-separated .txt with mandatory columns filename, condition, replicate}
+\item{study_design}{Study design in tab-separated .txt with mandatory columns filename, condition, replicate
+By default, Study_design_template.tsv is written next to the input tsv. Fill in condition and replicate and save as
+Study_design_filled.tsv. Then the next run of the function will likely go through ;-).}
 }
 \value{
 A qdata result object (list) containing objects data, data_wide, matrix_raw, ann_col and ann_row
