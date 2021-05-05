@@ -5,11 +5,11 @@
 \title{Test Differential Protein Expression in MS proteomics data}
 \usage{
 testDifferentialAbundance(
- 
-    input_dt = "../../Collaborations/Patras_MUVCOL/PR3_production/results/02_DIANN1711_LFeCLib_Pass2/02_DIANN1711_LFeCLib_Pass2.pr_matrix.tsv",
+  input_dt = "path/to/DIANN_matrix.tsv",
   protein_group_annotation = NULL,
- 
-    study_design = "../../Collaborations/Patras_MUVCOL/PR3_production/data/study_design_fake_test.txt",
+  study_design = "path/to/Study_design_filled.tsv",
+  normalize_data = TRUE,
+  normalization_function = limma::normalizeQuantiles,
   condition_1 = unique(fread(study_design)$condition)[2],
   condition_2 = unique(fread(study_design)$condition)[1],
   min_n_obs = 4,
@@ -40,6 +40,13 @@ to extract it from the input_dt.}
 \item condition: String, biological condition (e.g. "treated" and "untreated")
 \item replicate: Replicate number (integer). Minimally 3 replicates are needed per condition for this type of analysis.
 }}
+
+\item{normalize_data}{Whether or not data is scaled/normalized before differential testing. In some cases
+it might be preferable not to scale the datasets, e.g. when comparing pulldowns vs. input samples! Defaults to TRUE.}
+
+\item{normalization_function}{Normalization function to use that transforms a matrix of quantities where columns are
+samples and rows are analytes. Defaults to limma:normalizeQuantiles, but can be replaced with any such function. You may want
+to try limma::normalizeVSN or limma::normalizeMedianValues.}
 
 \item{condition_1}{Manual override to the condition 1 for the differential comparison. By default it is guessed from unique(study_design$condition)}
 
@@ -75,7 +82,7 @@ A diffExpr object (list) containing (access by x$ or by "x[\link{name}]")
 }
 }
 \description{
-Test Differential Protein Expression in MS proteomics data
+Test Differential Protein Expression in MS proteomics data starting small: From the precursor level.
 }
 \author{
 Moritz Heusel

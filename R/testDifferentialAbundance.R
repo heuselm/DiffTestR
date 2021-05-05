@@ -20,6 +20,11 @@
 #' \item condition: String, biological condition (e.g. "treated" and "untreated")
 #' \item replicate: Replicate number (integer). Minimally 3 replicates are needed per condition for this type of analysis.
 #' }
+#' @param normalize_data Whether or not data is scaled/normalized before differential testing. In some cases
+#' it might be preferable not to scale the datasets, e.g. when comparing pulldowns vs. input samples! Defaults to TRUE.
+#' @param normalization_function Normalization function to use that transforms a matrix of quantities where columns are
+#' samples and rows are analytes. Defaults to limma:normalizeQuantiles, but can be replaced with any such function. You may want
+#' to try limma::normalizeVSN or limma::normalizeMedianValues.
 #' @param condition_1 Manual override to the condition 1 for the differential comparison. By default it is guessed from unique(study_design$condition)
 #' @param condition_2 Manual override to the condition 2 for the differential comparison. By default it is guessed from unique(study_design$condition)
 #' @param min_n_obs Minimum number of observations per precursor (number of runs it was identified in)
@@ -55,6 +60,11 @@
 testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
                                       protein_group_annotation = NULL,
                                       study_design = "path/to/Study_design_filled.tsv",
+
+                                      # toggle normalization & -function
+                                      normalize_data = TRUE,
+                                      normalization_function = limma::normalizeQuantiles,
+                                      # also try
 
                                       # select conditions to be compared
                                       condition_1 = unique(fread(study_design)$condition)[2],
@@ -137,9 +147,14 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   data.s.wide.quant.log2 = log2(data.s.wide.quant)
   data.s.wide.quant.log2[is.infinite(data.s.wide.quant.log2)] <- 0
 
-  # Plot abundance distributions before and after quantile normalization
+  # Plot abundance distributions before and after normalization (if applied)
   boxplot(data.s.wide.quant.log2, las = 2, main = "Input intensities, log2-transformed")
-  data.s.wide.quant.log2.qnorm = limma::normalizeQuantiles(data.s.wide.quant.log2)
+
+  if (normalize_data == FALSE) {
+    normalization_function = function(x){return(x)}
+  }
+
+  data.s.wide.quant.log2.qnorm = normalization_function(data.s.wide.quant.log2)
   boxplot(data.s.wide.quant.log2.qnorm, las = 2, main = "log2-transformed and quantile-normalized intensities")
   data.s.wide.log2.qnorm = cbind(data.s.wide[,1:2],data.s.wide.quant.log2.qnorm)
 
@@ -147,11 +162,11 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   data.s.long.prenorm = reshape2::melt(data.s.wide.quant.log2)
   data.s.long.prenorm$normalization = "before (input)"
   data.s.long.qNorm = reshape2::melt(data.s.wide.quant.log2.qnorm)
-  data.s.long.qNorm$normalization = "after (limma::qnorm)"
+  data.s.long.qNorm$normalization = "after normalization"
   data.s.long = rbind(data.s.long.prenorm, data.s.long.qNorm)
 
   ggplot(data.s.long, aes(value, group = Var2, color = normalization)) + geom_density() + facet_wrap(~normalization, ncol = 1) +
-    ggtitle("Impact of quantile normalization (R/limma)") + theme_bw() + xlab("log2 Precursor.Quantity")
+    ggtitle(paste("Impact of normalization, normalize_data = ",normalize_data)) + theme_bw() + xlab("log2 Precursor.Quantity")
   if(plot_pdf){
     ggsave("Normalization_impact_abundance_density.pdf", height = 5, width = 5)
   }
@@ -160,7 +175,7 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   # Visualize input data before imputation
   data.s.wide.quant.log2.qnorm.noNa = copy(data.s.wide.quant.log2.qnorm)
   data.s.wide.quant.log2.qnorm.noNa[is.na(data.s.wide.quant.log2.qnorm.noNa)] = 0
-  pheatmap(data.s.wide.quant.log2.qnorm.noNa[order(-rowSums(data.s.wide.quant.log2.qnorm.noNa)),], show_rownames = F,
+  pheatmap::pheatmap(data.s.wide.quant.log2.qnorm.noNa[order(-rowSums(data.s.wide.quant.log2.qnorm.noNa)),], show_rownames = F,
            main = "Quantile-normalized log2 precursor-level intensities, non-imputed", cluster_rows = F)
   if(plot_pdf){
     dev.copy(pdf, "Heatmap_unfiltered_pre_imputation.pdf", width = ncol(data.s.wide.quant.log2.qnorm.noNa)/2, height = 8)
@@ -169,7 +184,7 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   # too big for hclust, thus cluster_rows = F
 
   # Check correlation to remove outliers / select data subset
-  corrplot(cor(data.s.wide.quant.log2.qnorm.noNa),
+  corrplot::corrplot(cor(data.s.wide.quant.log2.qnorm.noNa),
            method = "color",
            is.corr = F,
            order = "hclust",
@@ -203,7 +218,7 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   }
 
   # Plot heatmap after min obs filtering, before imputation
-  pheatmap(data.s.wide.quant.log2.qnorm.noNa.minObs[order(-rowSums(data.s.wide.quant.log2.qnorm.noNa.minObs)),], show_rownames = F,
+  pheatmap::pheatmap(data.s.wide.quant.log2.qnorm.noNa.minObs[order(-rowSums(data.s.wide.quant.log2.qnorm.noNa.minObs)),], show_rownames = F,
            ann_col = annotation_col,
            main = "Quantile-normalized log2 precursor-level intensities, min obs. filtered, before imputation",
            cluster_rows = F,
@@ -215,7 +230,7 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
 
   # Sample-sample correlation after filtering to min obs
   dev.off()
-  corrplot(cor(data.s.wide.quant.log2.qnorm.noNa.minObs),
+  corrplot::corrplot(cor(data.s.wide.quant.log2.qnorm.noNa.minObs),
            method = "color",
            is.corr = F,
            order = "hclust",
@@ -266,7 +281,7 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
       visualize_imputation_heatmap[sample(1:nrow(visualize_imputation_heatmap), 20000, replace = F),]
   }
 
-  pheatmap(visualize_imputation_heatmap[order(-rowSums(visualize_imputation_heatmap)),],
+  pheatmap::pheatmap(visualize_imputation_heatmap[order(-rowSums(visualize_imputation_heatmap)),],
            main = "Quantile-normalized log2 precursor-level intensities, min obs.\nnon-imputed      vs       imputed",
            show_rownames = F,
            gaps_col = ncol(data.s.wide.quant.log2.qnorm.noNa.minObs.imp),
