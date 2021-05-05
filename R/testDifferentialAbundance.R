@@ -361,7 +361,6 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   close(pb)
   res$p_value = pvals
   res$log2_fold_change = log2fcs
-  # res[, p_value_BHadj:=p.adjust(p_value, method = "fdr")]
 
   # Visualize intermediate, precursor-level results in volcano plot
   res[, target_prot:=grepl(target_protein, Protein.Group), Precursor.Id]
