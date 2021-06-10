@@ -331,7 +331,8 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   log2fcs = numeric(length = n_prec)
 
   # presplit matrix
-  data.s.wide.quant.log2.qnorm.noNa.minObs.imp = data.s.wide.quant.log2.qnorm.noNa.minObs.imp[order(row.names(data.s.wide.quant.log2.qnorm.noNa.minObs.imp)),]
+  data.s.wide.quant.log2.qnorm.noNa.minObs.imp =
+    data.s.wide.quant.log2.qnorm.noNa.minObs.imp[order(row.names(data.s.wide.quant.log2.qnorm.noNa.minObs.imp), method = "radix"),]
 
   # double-check ordering
   if (!(all(row.names(data.s.wide.quant.log2.qnorm.noNa.minObs.imp) == res$Precursor.Id))){
