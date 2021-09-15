@@ -85,6 +85,10 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
                                       target_protein = "O08760")
 {
   #####################################################################################################
+
+  ## Set seed to ensure reproducibility
+  set.seed(123)
+
   ## Processing
   # load data
   if (is.character(input_dt)){
