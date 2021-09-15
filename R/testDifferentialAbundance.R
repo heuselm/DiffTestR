@@ -101,10 +101,14 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
 
   if (is.null(protein_group_annotation)){
     # Try to retrieve protein annotation from input table
-    protein_group_annotation = unique(data[, .(Protein.Group, Protein.Names, Genes)])
-    if(!("Protein.Names" %in% names(protein_group_annotation))){
-      warning("You will run into trouble plotting the Protein.Names; column is missing in input data\n
-              and/or protein_group_annotation")
+    if("Protein.Names" %in% names(data)){
+      protein_group_annotation = unique(data[, .(Protein.Group, Protein.Names)])
+    } else {
+      data[, Protein.Names:=Protein.Group]
+      protein_group_annotation = unique(data[, .(Protein.Group, Protein.Names)])
+      warning("Protein.Names column is missing in input data\n
+      Protein.Group identifiers will be used, unless Protein.Group-to-Protein.Name mapping is provided via
+      protein_group_annotation table")
     }
   }
 
@@ -184,6 +188,7 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   # too big for hclust, thus cluster_rows = F
 
   # Check correlation to remove outliers / select data subset
+  dev.off()
   corrplot::corrplot(cor(data.s.wide.quant.log2.qnorm.noNa),
            method = "color",
            is.corr = F,
@@ -355,9 +360,15 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
     }
     v1 = data.s.wide.quant.log2.qnorm.noNa.minObs.imp.cond1[i,]
     v2 = data.s.wide.quant.log2.qnorm.noNa.minObs.imp.cond2[i,]
-    t_test_result =t.test(v1, v2)
-    pvals[i] = t_test_result$p.value
-    log2fcs[i] = mean(v1) - mean(v2)
+
+    if(all(v1 == v2)){
+      pvals[i] = 1
+      log2fcs[i] = 0
+    } else{
+      t_test_result =t.test(v1, v2)
+      pvals[i] = t_test_result$p.value
+      log2fcs[i] = mean(v1) - mean(v2)
+    }
   }
   close(pb)
   res$p_value = pvals
