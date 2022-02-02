@@ -1,0 +1,30 @@
+Protein.Group	Protein.Names	Genes	GO term association
+Q91ZJ9	HYAL1_MOUSE	Hyal1	Response to fibroblast growth factor
+Q80YX1	TENA_MOUSE	Tnc	Response to fibroblast growth factor
+Q8C196	CPSM_MOUSE	Cps1	Response to fibroblast growth factor
+Q8C4U3	SFRP1_MOUSE	Sfrp1	Response to fibroblast growth factor
+Q9JHI0	MMP19_MOUSE	Mmp19	Collagen metabolic process
+O70370	CATS_MOUSE	Ctss	Collagen metabolic process
+O88839	ADA15_MOUSE	Adam15	Collagen metabolic process
+P49300	CLC10_MOUSE	Clec10a	Wound healing
+P14901	HMOX1_MOUSE	Hmox1	Wound healing
+P12032	TIMP1_MOUSE	Timp1	Wound healing
+P48356	LEPR_MOUSE	Lepr	Collagen biosynthesis
+P11087	CO1A1_MOUSE	Col1a1	Collagen biosynthesis
+Q61176	ARGI1_MOUSE	Arg1	Collagen biosynthesis
+Q9QUN7	TLR2_MOUSE	Tlr2	Decreased IL-12 production
+Q62137	JAK3_MOUSE	Jak3	Decreased IL-12 production
+Q91YI4	ARRB2_MOUSE	Arrb2	Decreased IL-12 production
+Q922R0	PRKX_MOUSE	Prkx	Endothelial cell proliferation
+O35671	ITBP1_MOUSE	Itgb1bp1	Endothelial cell proliferation
+P58022	LOXL2_MOUSE	Loxl2	Endothelial cell proliferation
+P53690	MMP14_MOUSE	Mmp14	Endothelial cell proliferation
+Q61458	CCNH_MOUSE	Ccnh	DNA base excision repair
+P51949	MAT1_MOUSE	Mnat1	DNA base excision repair
+P51612	XPC_MOUSE	Xpc	DNA base excision repair
+Q60596	XRCC1_MOUSE	Xrcc1	DNA base excision repair
+Q9EQ28	DPOD3_MOUSE	Pold3	DNA base excision repair
+O35654	DPOD2_MOUSE	Pold2	DNA base excision repair
+P37913	DNLI1_MOUSE	Lig1	DNA base excision repair
+P56581	TDG_MOUSE	Tdg	DNA base excision repair
+Q62432;Q8BUN5	SMAD2_MOUSE;SMAD3_MOUSE	Smad2;Smad3	SMAD family proteins
