@@ -20,7 +20,7 @@ DiffTestR provides convenience functions for complete differential expression an
 
 ```r
 # Install from GitHub (requires devtools)
-devtools::install_github("your-username/DiffTestR")
+devtools::install_github("heuselm/DiffTestR")
 
 # Or install locally
 devtools::install_local("path/to/DiffTestR")
@@ -313,7 +313,7 @@ If you use DiffTestR in your research, please cite:
 
 ```
 Heusel, M. DiffTestR: Testing Differential Expression from AP-DIA-MS datasets.
-R package version 0.0.0.9000. https://github.com/your-username/DiffTestR
+R package version 0.0.0.9000. https://github.com/heuselm/DiffTestR
 ```
 
 ## Author
