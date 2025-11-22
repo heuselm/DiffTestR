@@ -201,3 +201,114 @@ calculate_summary_stats <- function(diffExpr_result_dt,
 
   return(stats)
 }
+
+#' Print method for multiDiffExpr objects
+#'
+#' @param x A multiDiffExpr object (result from testMultipleComparisons)
+#' @param ... Additional arguments (not used)
+#'
+#' @return Invisibly returns the input object
+#'
+#' @export
+print.multiDiffExpr <- function(x, ...) {
+  cat("\n")
+  cat("================================================\n")
+  cat("  Multiple Differential Abundance Comparisons\n")
+  cat("================================================\n\n")
+
+  cat("Overview:\n")
+  cat(sprintf("  Total comparisons: %d\n", x$n_comparisons))
+  cat(sprintf("  Successful: %d\n", x$n_successful))
+  if (x$n_comparisons > x$n_successful) {
+    cat(sprintf("  Failed: %d\n", x$n_comparisons - x$n_successful))
+  }
+
+  cat("\nComparisons performed:\n")
+  for (i in seq_along(x$comparisons)) {
+    comp <- x$comparisons[[i]]
+    comp_name <- sprintf("%s vs %s", comp$condition_1, comp$condition_2)
+    status <- if (comp_name %in% names(x$individual_results)) {
+      "[SUCCESS]"
+    } else {
+      "[FAILED]"
+    }
+    cat(sprintf("  %d. %-30s %s\n", i, comp_name, status))
+  }
+
+  if (!is.null(x$combined_results_dt) && nrow(x$combined_results_dt) > 0) {
+    cat("\nCombined Results Summary:\n")
+    cat(sprintf("  Total precursors tested: %d\n",
+                length(unique(x$combined_results_dt$Precursor.Id))))
+    cat(sprintf("  Total proteins tested: %d\n",
+                length(unique(x$combined_results_dt$Protein.Group))))
+
+    # Count significant results across all comparisons
+    n_sig_results <- nrow(x$combined_results_dt[p_value_BHadj_protein <= 0.05])
+    cat(sprintf("  Total significant results (p < 0.05): %d\n", n_sig_results))
+  }
+
+  if (!is.null(x$error_log) && nrow(x$error_log) > 0) {
+    cat("\nErrors encountered:\n")
+    for (i in seq_len(nrow(x$error_log))) {
+      err <- x$error_log[i, ]
+      cat(sprintf("  %s: %s\n", err$comparison, err$error_message))
+    }
+  }
+
+  cat("\nOutput:\n")
+  cat(sprintf("  Results directory: %s\n", x$output_dir))
+
+  cat("\n")
+  cat("Use summary(x) for more details\n")
+  cat("Access individual results: x$individual_results$comparison_name\n")
+  cat("Access combined results: x$combined_results_dt\n")
+  cat("================================================\n\n")
+
+  invisible(x)
+}
+
+#' Summary method for multiDiffExpr objects
+#'
+#' @param object A multiDiffExpr object
+#' @param ... Additional arguments (not used)
+#'
+#' @return Invisibly returns summary statistics
+#'
+#' @export
+summary.multiDiffExpr <- function(object, ...) {
+  print(object)
+
+  cat("\n=== Detailed Summary by Comparison ===\n")
+
+  for (comp_name in names(object$individual_results)) {
+    cat("\n")
+    cat(sprintf("--- %s ---\n", comp_name))
+
+    result <- object$individual_results[[comp_name]]
+
+    if ("summary_stats" %in% names(result)) {
+      stats <- result$summary_stats
+
+      cat(sprintf("  Precursors tested: %d\n", stats$n_precursors_tested))
+      cat(sprintf("  Proteins tested: %d\n", stats$n_proteins_tested))
+      cat(sprintf("  Significant proteins (p < 0.05): %d (%.1f%%)\n",
+                  stats$n_significant_proteins,
+                  100 * stats$n_significant_proteins / stats$n_proteins_tested))
+
+      if (!is.null(stats$n_upregulated) && !is.null(stats$n_downregulated)) {
+        cat(sprintf("  Up-regulated (|log2FC| > 1, p < 0.05): %d\n", stats$n_upregulated))
+        cat(sprintf("  Down-regulated (|log2FC| > 1, p < 0.05): %d\n", stats$n_downregulated))
+      }
+
+      if (!is.null(stats$median_log2fc_protein)) {
+        cat(sprintf("  Median log2FC: %.3f\n", stats$median_log2fc_protein))
+      }
+    } else {
+      cat("  (Summary statistics not available)\n")
+    }
+  }
+
+  cat("\n")
+
+  invisible(object$overview_stats)
+}
