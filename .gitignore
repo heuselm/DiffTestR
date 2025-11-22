@@ -2,3 +2,8 @@
 *.pdf
 .Rproj
 .Rhistory
+
+# Large test data files (>100MB)
+testData/*.tsv
+testData/Exploris480.tsv
+testData/TimsTof.tsv

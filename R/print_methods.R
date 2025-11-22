@@ -166,13 +166,17 @@ calculate_summary_stats <- function(diffExpr_result_dt,
     if (!is.null(condition_1)) {
       cond1_samples <- study_design[condition == condition_1, filename]
       if (length(cond1_samples) > 0) {
-        cond1_data <- data_matrix[, cond1_samples, drop = FALSE]
-        cv1 <- apply(cond1_data, 1, function(x) {
-          x_valid <- x[!is.na(x)]
-          if (length(x_valid) < 2) return(NA)
-          (sd(x_valid) / mean(x_valid)) * 100
-        })
-        stats$median_cv_condition1 <- median(cv1, na.rm = TRUE)
+        # Find which columns match the condition 1 samples
+        col_idx <- which(colnames(data_matrix) %in% cond1_samples)
+        if (length(col_idx) > 0) {
+          cond1_data <- data_matrix[, col_idx, drop = FALSE]
+          cv1 <- apply(cond1_data, 1, function(x) {
+            x_valid <- x[!is.na(x)]
+            if (length(x_valid) < 2) return(NA)
+            (sd(x_valid) / mean(x_valid)) * 100
+          })
+          stats$median_cv_condition1 <- median(cv1, na.rm = TRUE)
+        }
       }
     }
 
@@ -180,13 +184,17 @@ calculate_summary_stats <- function(diffExpr_result_dt,
     if (!is.null(condition_2)) {
       cond2_samples <- study_design[condition == condition_2, filename]
       if (length(cond2_samples) > 0) {
-        cond2_data <- data_matrix[, cond2_samples, drop = FALSE]
-        cv2 <- apply(cond2_data, 1, function(x) {
-          x_valid <- x[!is.na(x)]
-          if (length(x_valid) < 2) return(NA)
-          (sd(x_valid) / mean(x_valid)) * 100
-        })
-        stats$median_cv_condition2 <- median(cv2, na.rm = TRUE)
+        # Find which columns match the condition 2 samples
+        col_idx <- which(colnames(data_matrix) %in% cond2_samples)
+        if (length(col_idx) > 0) {
+          cond2_data <- data_matrix[, col_idx, drop = FALSE]
+          cv2 <- apply(cond2_data, 1, function(x) {
+            x_valid <- x[!is.na(x)]
+            if (length(x_valid) < 2) return(NA)
+            (sd(x_valid) / mean(x_valid)) * 100
+          })
+          stats$median_cv_condition2 <- median(cv2, na.rm = TRUE)
+        }
       }
     }
   }

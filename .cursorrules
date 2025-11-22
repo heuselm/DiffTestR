@@ -1,0 +1,15 @@
+# Cursor AI Rules for DiffTestR
+
+## Git Commit Guidelines
+- NEVER append "done by claude", "done by AI", or similar annotations to commit messages
+- Commit messages should be clean and professional without AI attribution
+- Do not mention the AI assistant in commit messages
+
+## General Guidelines
+- Write clean, maintainable code
+- Follow R package conventions
+- Keep commit messages concise and descriptive
+
+
+
+

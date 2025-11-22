@@ -448,6 +448,9 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   res$p_value = pvals
   res$log2_fold_change = log2fcs
 
+  # Add precursor-level multiple testing correction
+  res[, p_value_BHadj:=p.adjust(p_value, method = "BH")]
+
   # Visualize intermediate, precursor-level results in volcano plot
   res[, target_prot:=grepl(target_protein, Protein.Group), Precursor.Id]
 
@@ -536,7 +539,6 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   result_list = list("data_source" = if(is.character(input_dt)){input_dt}else{deparse(substitute(input_dt))},
              "diffExpr_result_dt" = res,
              "mat_quant_log2_qnorm_imp_minObs" = data.s.wide.quant.log2.qnorm.noNa.minObs.imp,
-             "mat_quant_log2_qnorm_imp" = data.s.wide.quant.log2.qnorm.imp,
              "mat_quant_log2_qnorm" = data.s.wide.quant.log2.qnorm,
              "mat_quant_log2" = data.s.wide.quant.log2,
              "mat_quant" = data.s.wide.quant,

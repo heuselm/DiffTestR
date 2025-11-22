@@ -4,6 +4,7 @@
 #'
 #' @keywords internal
 #' @noRd
+NULL
 
 #' Report progress message
 #'

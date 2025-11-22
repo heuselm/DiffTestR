@@ -17,7 +17,8 @@ testDifferentialAbundance(
   imp_sd = 0.2,
   plot_pdf = TRUE,
   write_tsv_tables = TRUE,
-  target_protein = "O08760"
+  target_protein = "O08760",
+  verbose = TRUE
 )
 }
 \arguments{
@@ -65,6 +66,8 @@ distribution for sampling will be centered}
 \item{write_tsv_tables}{Write out final quant table with differential expression testing results}
 
 \item{target_protein}{Optional string with protein identifier to highlight in volcano plots}
+
+\item{verbose}{Logical, whether to print progress messages during analysis (default: TRUE)}
 }
 \value{
 A diffExpr object (list) containing (access by x$ or by "x[\link{name}]")
