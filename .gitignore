@@ -7,3 +7,20 @@
 testData/*.tsv
 testData/Exploris480.tsv
 testData/TimsTof.tsv
+
+# Test results and output files
+testData/results/*.png
+testData/results/*.pdf
+testData/results/*.tsv
+tests/testthat/*.tsv
+tests/testthat/*.png
+tests/testthat/*.pdf
+
+# Large data files
+*.rda
+*.RData
+*.csv
+*.tsv
+!data/DiffTestR_example_*.rda
+!Tanner2021_analysis_scripts/annotation_*.csv
+!Tanner2021_analysis_scripts/proteins_of_interest_*.tsv

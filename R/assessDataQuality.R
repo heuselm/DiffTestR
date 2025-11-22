@@ -79,10 +79,67 @@ assessDataQuality <- function(data_matrix,
     report_progress("Starting quality assessment", type = "info")
   }
 
+  # Helper function to extract basename (remove path and extension)
+  extract_basename <- function(x) {
+    # Remove file extension (common ones: .raw, .d, .tsv, .csv, etc.)
+    x <- gsub("\\.(raw|d|tsv|csv|txt)$", "", x, ignore.case = TRUE)
+    # Extract basename (last component after path separators)
+    # Handle both Windows (\) and Unix (/) paths
+    x <- gsub(".*[/\\\\]", "", x)
+    return(x)
+  }
+
   # Match column names to study design
   sample_cols <- colnames(data_matrix)
-  if (!all(sample_cols %in% study_design$filename)) {
-    stop("Not all column names in data_matrix match study_design$filename")
+  
+  # Extract basenames from column names
+  sample_basenames <- extract_basename(sample_cols)
+  
+  # Extract basenames from study_design$filename (in case they also have paths)
+  study_design_basenames <- extract_basename(study_design$filename)
+  
+  # Create mapping: column name -> study_design filename
+  # Match by basename
+  col_to_filename <- character(length(sample_cols))
+  names(col_to_filename) <- sample_cols
+  
+  for (i in seq_along(sample_cols)) {
+    # Find matching study_design entry by basename
+    match_idx <- which(study_design_basenames == sample_basenames[i])
+    
+    if (length(match_idx) == 0) {
+      stop(sprintf(
+        "Column '%s' (basename: '%s') does not match any filename in study_design",
+        sample_cols[i], sample_basenames[i]
+      ))
+    } else if (length(match_idx) > 1) {
+      warning(sprintf(
+        "Column '%s' (basename: '%s') matches multiple entries in study_design. Using first match.",
+        sample_cols[i], sample_basenames[i]
+      ))
+      match_idx <- match_idx[1]
+    }
+    
+    col_to_filename[i] <- study_design$filename[match_idx]
+  }
+  
+  # Check that all study_design entries are matched
+  unmatched <- setdiff(study_design$filename, col_to_filename)
+  if (length(unmatched) > 0) {
+    warning(sprintf(
+      "Some study_design filenames not found in data_matrix: %s",
+      paste(unmatched, collapse = ", ")
+    ))
+  }
+  
+  # Rename columns in data_matrix to use study_design$filename (shorter names)
+  # Only rename if they're different
+  if (!identical(sample_cols, col_to_filename)) {
+    if (verbose) {
+      report_progress("Renaming columns from paths to study_design filenames", type = "info")
+    }
+    colnames(data_matrix) <- col_to_filename
+    sample_cols <- col_to_filename  # Update for use in rest of function
   }
 
   #---------------------------------------------------------------------------
