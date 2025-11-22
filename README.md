@@ -27,6 +27,12 @@ DiffTestR provides convenience functions for complete differential expression an
   - Missing value summaries
   - Dynamic range and replicate correlation metrics
 - **Enhanced return objects** - Structured results with metadata and statistics
+- **Multi-comparison testing** - NEW `testMultipleComparisons()` function
+  - Auto-generates all pairwise comparisons from study design
+  - OR accepts explicit comparison specification
+  - Automated directory organization and result aggregation
+  - Robust error handling across multiple comparisons
+  - Combined visualization and summary statistics
 
 ## Installation
 
@@ -96,13 +102,44 @@ results <- testDifferentialAbundance(
 )
 ```
 
-### 3. Visualize Multiple Comparisons
+### 3. Run Multiple Comparisons (NEW in v0.9)
+
+```r
+# Auto-generate and test all pairwise comparisons
+multi_result <- testMultipleComparisons(
+  input_dt = qdata$data_wide,
+  study_design = "Study_design.tsv",
+  output_dir = "multi_comparison_results"  # Organized subdirectories
+)
+
+# View summary
+print(multi_result)
+
+# Access individual comparisons
+multi_result$individual_results$ConditionA_vs_ConditionB
+
+# Access combined results table
+multi_result$combined_results_dt
+
+# Or specify explicit comparisons
+comparisons <- data.table(
+  condition_1 = c("KO", "Treatment"),
+  condition_2 = c("WT", "WT")
+)
+
+multi_result <- testMultipleComparisons(
+  input_dt = qdata$data_wide,
+  study_design = "Study_design.tsv",
+  comparisons = comparisons
+)
+```
+
+### 4. Visualize Multiple Comparisons
 
 ```r
 # Create overview plots for multiple differential tests
-# (After combining results from multiple testDifferentialAbundance runs)
 overview <- plotDifferentialAbundanceOverview(
-  diffExpr_result_dt = combined_results,
+  diffExpr_result_dt = multi_result$combined_results_dt,
   significance_threshold_p = 0.05,
   significance_threshold_fc = 2,          # 2-fold change threshold
   browsable_html = TRUE,                   # Create interactive HTML plots
