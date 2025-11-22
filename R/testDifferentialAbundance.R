@@ -35,6 +35,7 @@
 #' @param plot_pdf Document processing steps in a string of pdf graphs
 #' @param write_tsv_tables Write out final quant table with differential expression testing results
 #' @param target_protein Optional string with protein identifier to highlight in volcano plots
+#' @param verbose Logical, whether to print progress messages during analysis (default: TRUE)
 #'
 #' @return A diffExpr object (list) containing (access by x$ or by "x[[name]]")
 #' \itemize{
@@ -82,20 +83,43 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
                                       write_tsv_tables = TRUE,
 
                                       # target protein highlight
-                                      target_protein = "O08760")
+                                      target_protein = "O08760",
+
+                                      # progress reporting
+                                      verbose = TRUE)
 {
   #####################################################################################################
 
   ## Set seed to ensure reproducibility
   set.seed(123)
 
+  # Print analysis header
+  if (verbose) {
+    print_analysis_header("DiffTestR: Differential Abundance Analysis")
+  }
+
   ## Processing
   # load data
+  if (verbose) {
+    report_progress("Loading data", step = 1, total_steps = 8, verbose = verbose)
+  }
+
   if (is.character(input_dt)){
     data = fread(input_dt)
+    if (verbose) {
+      report_progress(sprintf("  Loaded %d precursors from file", nrow(data)),
+                     type = "info", verbose = verbose)
+    }
   }else {
     data = as.data.table(input_dt)
+    if (verbose) {
+      report_progress(sprintf("  Loaded %d precursors from R object", nrow(data)),
+                     type = "info", verbose = verbose)
+    }
   }
+
+  # Store input size for summary stats
+  input_n_precursors <- nrow(data)
 
   if (is.character(study_design)){
     annotation = fread(study_design)
@@ -152,6 +176,10 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   row.names(data.s.wide.quant) = data.s.wide$Precursor.Id
 
   # log transform and remove inf
+  if (verbose) {
+    report_progress("Log2 transformation", step = 2, total_steps = 8, verbose = verbose)
+  }
+
   data.s.wide.quant.log2 = log2(data.s.wide.quant)
   data.s.wide.quant.log2[is.infinite(data.s.wide.quant.log2)] <- 0
 
@@ -160,6 +188,15 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
 
   if (normalize_data == FALSE) {
     normalization_function = function(x){return(x)}
+    if (verbose) {
+      report_progress("Normalization: SKIPPED (normalize_data = FALSE)", step = 3,
+                     total_steps = 8, verbose = verbose)
+    }
+  } else {
+    if (verbose) {
+      report_progress("Quantile normalization", step = 3, total_steps = 8,
+                     verbose = verbose)
+    }
   }
 
   data.s.wide.quant.log2.qnorm = normalization_function(data.s.wide.quant.log2)
@@ -206,10 +243,23 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   }
 
   # Filter dataset based on minimum n_obs to avoid imputation around noise..
+  if (verbose) {
+    report_progress(sprintf("Filtering (min_n_obs >= %d)", min_n_obs), step = 4,
+                   total_steps = 8, verbose = verbose)
+  }
+
   n_obs = apply(data.s.wide.quant.log2.qnorm, MARGIN = 1, function(x) length(x)-sum(is.na(x)))
   hist(n_obs, n = 100)
   abline(v = min_n_obs, col = "red", lty = 2)
   data.s.wide.quant.log2.qnorm.noNa.minObs = data.s.wide.quant.log2.qnorm.noNa[n_obs >= min_n_obs,]
+
+  if (verbose) {
+    report_progress(sprintf("  Retained %d/%d precursors after filtering",
+                           nrow(data.s.wide.quant.log2.qnorm.noNa.minObs),
+                           nrow(data.s.wide.quant.log2.qnorm)),
+                   type = "info", verbose = verbose)
+  }
+
   nrow(data.s.wide.quant.log2.qnorm.noNa.minObs)
 
   plot(n_obs[order(-rowSums(data.s.wide.quant.log2.qnorm.noNa))], main = "n_observations over abundance rank")
@@ -252,6 +302,11 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   }
 
     ## Impute missing values
+  if (verbose) {
+    report_progress("Imputing missing values", step = 5, total_steps = 8,
+                   verbose = verbose)
+  }
+
   # distribution of all values before imputation
   hist(data.s.wide.quant.log2.qnorm.noNa.minObs)
 
@@ -259,9 +314,17 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   imp_percentile = quantile(unique(data.s.wide.quant.log2.qnorm.noNa.minObs[data.s.wide.quant.log2.qnorm.noNa.minObs>0]),
                         na.rm = T, imp_percentile)
   data.s.wide.quant.log2.qnorm.noNa.minObs.imp = copy(data.s.wide.quant.log2.qnorm.noNa.minObs)
+
+  n_imputed <- sum(data.s.wide.quant.log2.qnorm.noNa.minObs.imp == 0)
+
   data.s.wide.quant.log2.qnorm.noNa.minObs.imp[data.s.wide.quant.log2.qnorm.noNa.minObs.imp == 0] =
     rnorm(length(data.s.wide.quant.log2.qnorm.noNa.minObs.imp[data.s.wide.quant.log2.qnorm.noNa.minObs.imp == 0]),
           mean = imp_percentile,  sd = imp_sd)
+
+  if (verbose) {
+    report_progress(sprintf("  Imputed %d missing values", n_imputed),
+                   type = "info", verbose = verbose)
+  }
 
   # visualize distribution of imputed values
   hist(data.s.wide.quant.log2.qnorm.noNa.minObs)
@@ -354,11 +417,18 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   data.s.wide.quant.log2.qnorm.noNa.minObs.imp.cond2 = data.s.wide.quant.log2.qnorm.noNa.minObs.imp[, grep(condition_2, colnames(data.s.wide.quant.log2.qnorm.noNa.minObs.imp))]
 
   # Start progress bar
+  if (verbose) {
+    report_progress(sprintf("Precursor-level statistical testing (%d tests)", n_prec),
+                   step = 6, total_steps = 8, verbose = verbose)
+  }
+
   total = n_prec
   pb <- txtProgressBar(title = "Calculating precursor-level statistics", min = 0,
                        max = total, width = 300, style = 3)
   for (i in seq_along(prec)){
-    setTxtProgressBar(pb, i)
+    if (verbose || plot_pdf) {  # Only show progress bar if verbose or making PDFs
+      setTxtProgressBar(pb, i)
+    }
     if (row.names(data.s.wide.quant.log2.qnorm.noNa.minObs.imp.cond1)[i] != prec[i]){
       stop("precursor mismatch")
     }
@@ -392,6 +462,11 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   }
 
   # Summarize to protein level
+  if (verbose) {
+    report_progress("Protein-level rollup and multiple testing correction", step = 7,
+                   total_steps = 8, verbose = verbose)
+  }
+
   res[, log2_fold_change_protein:=mean(log2_fold_change), Protein.Group]
   res[, n_precursors:=length(unique(Precursor.Id)), Protein.Group]
   res[, p_value_protein:=mean(p_value), Protein.Group]
@@ -401,6 +476,13 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   pcorr[, p_value_BHadj_protein:=p.adjust(p_value_protein, method = "BH")]
   # Add corrected pvalues
   res = merge(res, pcorr[, .(Protein.Group, p_value_BHadj_protein)], by = "Protein.Group")
+
+  if (verbose) {
+    n_sig_proteins <- length(unique(res[p_value_BHadj_protein <= 0.05, Protein.Group]))
+    report_progress(sprintf("  Found %d significant proteins (p < 0.05)",
+                           n_sig_proteins),
+                   type = "info", verbose = verbose)
+  }
 
   # Add protein annotation from protein_group_annotation
   res = merge(res, protein_group_annotation, by = "Protein.Group")
@@ -433,19 +515,45 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   write.table(res, "DiffTest_result.tsv", sep = "\t", quote = F, row.names = F)
 
   # return results
+  if (verbose) {
+    report_progress("Finalizing results", step = 8, total_steps = 8, verbose = verbose)
+  }
+
   names(data.s.long) = c("Precursor.Id", "filename", "Precursor.Quantity.log2", "normalization")
   data.s.long = merge(data.s.long, unique(data[, .(Protein.Group, Precursor.Id)]), by = "Precursor.Id", all.x = T)
   annotation[, colname_in_matrix:=paste(filename,condition,replicate)]
 
-  res = list("data_source" = if(is.character(input_dt)){input_dt}else{deparse(substitute(input_dt))},
-             "data_long" = data.s.long,
-             "data_matrix_log2" = data.s.wide.quant.log2.qnorm.noNa.minObs,
-             "data_matrix_log2_imp" = data.s.wide.quant.log2.qnorm.noNa.minObs.imp,
-             "study_design" = annotation,
-             "annotation_col" = annotation_col,
+  # Calculate summary statistics
+  summary_stats <- calculate_summary_stats(
+    diffExpr_result_dt = res,
+    input_n_precursors = input_n_precursors,
+    condition_1 = condition_1,
+    condition_2 = condition_2,
+    data_matrix = data.s.wide.quant.log2.qnorm.noNa.minObs,
+    study_design = annotation
+  )
+
+  result_list = list("data_source" = if(is.character(input_dt)){input_dt}else{deparse(substitute(input_dt))},
              "diffExpr_result_dt" = res,
+             "mat_quant_log2_qnorm_imp_minObs" = data.s.wide.quant.log2.qnorm.noNa.minObs.imp,
+             "mat_quant_log2_qnorm_imp" = data.s.wide.quant.log2.qnorm.imp,
+             "mat_quant_log2_qnorm" = data.s.wide.quant.log2.qnorm,
+             "mat_quant_log2" = data.s.wide.quant.log2,
+             "mat_quant" = data.s.wide.quant,
+             "study_design" = annotation,
+             "input_dt" = if(!is.character(input_dt)){input_dt}else{NULL},
+             "summary_stats" = summary_stats,
              "candidates_condition1" = res[p_value_BHadj_protein<=0.01 & log2_fold_change >= 1],
              "candidates_condition2" = res[p_value_BHadj_protein<=0.01 & log2_fold_change <= -1])
-  return(res)
+
+  # Add S3 class
+  class(result_list) <- c("diffExpr", "list")
+
+  if (verbose) {
+    report_progress("Analysis complete!", type = "success", verbose = verbose)
+    cat("\n")
+  }
+
+  return(result_list)
 }
 

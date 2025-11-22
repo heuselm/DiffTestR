@@ -8,6 +8,7 @@ DiffTestR provides convenience functions for complete differential expression an
 
 ## Features
 
+### Core Analysis
 - **Flexible data import** from DIA-NN or custom table formats
 - **Customizable normalization** (quantile, VSN, median, or custom methods)
 - **Frequency-based filtering** to remove low-quality measurements
@@ -15,6 +16,17 @@ DiffTestR provides convenience functions for complete differential expression an
 - **Statistical testing** at precursor level with protein-level summarization
 - **Comprehensive visualizations** including volcano plots, heatmaps, and interactive HTML reports
 - **Quality control plots** for normalization effects, sample correlations, and imputation diagnostics
+
+### New in v0.9 (evolve branch)
+- **Progress reporting** - Real-time feedback during long analyses with verbose mode
+- **Summary statistics** - Automatic calculation and display of key metrics
+- **S3 print methods** - Informative summary when printing results
+- **Data quality assessment** - Comprehensive QC metrics with `assessDataQuality()`
+  - Coefficient of variation analysis per condition
+  - Leave-one-out CV analysis for outlier replicate detection
+  - Missing value summaries
+  - Dynamic range and replicate correlation metrics
+- **Enhanced return objects** - Structured results with metadata and statistics
 
 ## Installation
 
