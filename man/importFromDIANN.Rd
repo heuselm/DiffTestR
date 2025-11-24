@@ -7,8 +7,7 @@
 importFromDIANN(
   path_to_result = "../../04_DIANN_LfMS1/DIANN_LfMS1-Pass2.tsv",
   quant_value_col = "Precursor.Quantity",
-  write_study_design_template = TRUE,
-  study_design = "../../04_DIANN_LfMS1/Study_design.txt"
+  study_design = NULL
 )
 }
 \arguments{

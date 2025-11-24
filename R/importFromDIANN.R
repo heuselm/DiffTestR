@@ -18,8 +18,7 @@
 #'
 importFromDIANN <- function(path_to_result = "../../04_DIANN_LfMS1/DIANN_LfMS1-Pass2.tsv",
                             quant_value_col = "Precursor.Quantity",
-                            write_study_design_template = TRUE,
-                            study_design = "../../04_DIANN_LfMS1/Study_design.txt")
+                            study_design = NULL)
 {
   # generate container object
   qdata = list()
@@ -32,19 +31,24 @@ importFromDIANN <- function(path_to_result = "../../04_DIANN_LfMS1/DIANN_LfMS1-P
        [length(unlist(strsplit(File.Name, split = "\\\\")))], File.Name]
   data[, File.Name:=gsub(".raw|.d", "", File.Name)]
 
-  # write study_design template based on the filenames in the dataset if selected
+  # If design not provided write study_design template based on the filenames in the dataset if selected
 
-  if (write_study_design_template){
+  if (is.null(study_design)){
     # write study_design template based on the filenames in the dataset
     nruns = length(unique(data$File.Name))
     study_des_template = data.table("filename" = unique(data$File.Name),
                                     "condition" = rep("FILL INN", nruns),
                                     "replicate" = rep("FILL INN", nruns))
     fwrite(study_des_template, file = paste0(dirname(path_to_result),"/Study_design_template.tsv"), sep = "\t")
+    message("Study design template written to", aste0(dirname(path_to_result),"/Study_design_template.tsv"))
 
+    message("Attempting to read filled Study design template from", aste0(dirname(path_to_result),"/Study_design_filled.tsv"))
     study_des = data.table::fread(paste0(dirname(path_to_result),"/Study_design_filled.tsv"))
   } else if (is.character(study_design)){
     study_des = fread(study_design) # Assuming a path to a different study design file has been provided
+    if (length(names(study_des) %in% c("filename", "condition", "replicate"))<3){
+      stop("Not all mandatory names filename, condition, replicate in study design. Fix column headers.")
+    }
   } else {
       study_des = study_design
     }
