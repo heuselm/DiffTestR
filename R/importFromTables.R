@@ -69,7 +69,7 @@ importFromTables <- function(path_to_tsv = "../../04_DIANN_LfMS1/Table_precursor
 
   # Reformat to wide, save as matrix and assemble matrix row and column annotations
   data.s.wide = data.table::dcast(data.s.long,
-                                  Protein.Group+Precursor.Id~File.Name+condition+replicate,
+                                  Protein.Group+Precursor.Id~File.Name,
                                   value.var = "Precursor.Quantity",
                                   fun.aggregate = sum)
   data.s.wide.m.raw = as.matrix(data.s.wide[, 3:ncol(data.s.wide)])
@@ -119,7 +119,11 @@ importFromTables <- function(path_to_tsv = "../../04_DIANN_LfMS1/Table_precursor
   qdata$matrix_raw = data.s.wide.m.raw
   qdata$ann_col = ann_col
   qdata$ann_row = ann_row
-  qdata$study_design = study_design
+  qdata$study_design = study_des
   qdata$source_file = path_to_tsv
+
+  # Assign S3 class
+  class(qdata) <- c("qdata", "list")
+
   return(qdata)
 }

@@ -84,7 +84,11 @@ importFromDIANN <- function(path_to_result = "../../04_DIANN_LfMS1/DIANN_LfMS1-P
   qdata$matrix_raw = data.s.wide.m.raw
   qdata$ann_col = ann_col
   qdata$ann_row = ann_row
-  qdata$study_design = study_design
+  qdata$study_design = study_des
   qdata$source_file = path_to_result
+
+  # Assign S3 class
+  class(qdata) <- c("qdata", "list")
+
   return(qdata)
 }
