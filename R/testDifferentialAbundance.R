@@ -1,54 +1,82 @@
 #' Test Differential Protein Expression in MS proteomics data
 #'
-#' @description Test Differential Protein Expression in MS proteomics data starting small: From the precursor level.
+#' @description Test Differential Protein Expression in MS proteomics data
+#' starting from the precursor level. This function now primarily accepts qdata
+#' objects from importFromDIANN() or importFromTables().
 #'
-#' @param input_dt Input data table either in tsv/txt format or already in R as data.table or data.frame with the following columns:
-#' #' The table should have the following columns:
+#' @param data Either a qdata object (recommended) OR a path to a data file
+#' (will attempt to import). If a data.table/data.frame is provided, a
+#' deprecation warning is shown.
+#' @param normalize_data Whether or not data is scaled/normalized before
+#' differential testing. In some cases it might be preferable not to scale
+#' the datasets, e.g. when comparing pulldowns vs. input samples!
+#' Defaults to TRUE.
+#' @param normalization_function Normalization function to use that transforms
+#' a matrix of quantities where columns are samples and rows are analytes.
+#' Defaults to limma::normalizeQuantiles, but can be replaced with any such
+#' function. Try limma::normalizeVSN or limma::normalizeMedianValues.
+#' @param condition_1 First condition for the differential comparison. By
+#' default it is guessed from unique conditions in the qdata object.
+#' @param condition_2 Second condition for the differential comparison. By
+#' default it is guessed from unique conditions in the qdata object.
+#' @param min_n_obs Minimum number of observations per precursor (number of
+#' runs it was identified in) to keep it in the analysis (default: 4)
+#' @param imp_percentile Percentile of the total distribution of values on
+#' which the random distribution for sampling will be centered (default: 0.001)
+#' @param imp_sd Standard deviation of the normal distribution from which
+#' values are sampled to impute missing values (default: 0.2)
+#' @param plot_pdf Document processing steps in a series of pdf graphs
+#' (default: TRUE)
+#' @param write_tsv_tables Write out final quant table with differential
+#' expression testing results (default: TRUE)
+#' @param target_protein Optional string with protein identifier to highlight
+#' in volcano plots
+#' @param verbose Logical, whether to print progress messages during analysis
+#' (default: TRUE)
+#'
+#' @return A ddata object (S3 class) containing differential expression results:
 #' \itemize{
-#' \item Protein.Group: Semicolon-separated Uniprot IDs (or similar, as long as it matches)
-#' \item Precursor.Id: Unique Precursor Id for which the quantitative values are contained
-#' \item "filename": The file names of the MS raw data, must be identical to the entries in study_design$filename
+#' \item data_source: Source file path
+#' \item comparison: String describing the comparison (e.g., "A/B")
+#' \item conditions: Named list with condition_1 and condition_2
+#' \item diffExpr_result_dt: Result table with intensities and statistics
+#' \item mat_quant_log2_qnorm_imp_minObs: Processed matrix (log2, normalized,
+#'   imputed, filtered)
+#' \item mat_quant_log2_qnorm: Log2 normalized matrix
+#' \item mat_quant_log2: Log2 transformed matrix
+#' \item mat_quant: Raw intensity matrix
+#' \item study_design: Study design table
+#' \item candidates_condition1: Proteins higher in condition 1
+#' \item candidates_condition2: Proteins higher in condition 2
+#' \item summary_stats: Summary statistics of the analysis
 #' }
-#' Note: The data will be log2-transformed internally.
 #'
-#' @param protein_group_annotation Protein annotation table with columns Protein.Group and Protein.Names (and others if desired)
-#' that will be used to annotate the results. By default it is assumed to be a subset of and and an attempt will be made
-#' to extract it from the input_dt.
-#' @param study_design Study design in tab-separated .txt with mandatory columns:
-#' \itemize{
-#' \item filename: Must match quantitative data-containing column headers in the input_dt
-#' \item condition: String, biological condition (e.g. "treated" and "untreated")
-#' \item replicate: Replicate number (integer). Minimally 3 replicates are needed per condition for this type of analysis.
-#' }
-#' @param normalize_data Whether or not data is scaled/normalized before differential testing. In some cases
-#' it might be preferable not to scale the datasets, e.g. when comparing pulldowns vs. input samples! Defaults to TRUE.
-#' @param normalization_function Normalization function to use that transforms a matrix of quantities where columns are
-#' samples and rows are analytes. Defaults to limma:normalizeQuantiles, but can be replaced with any such function. You may want
-#' to try limma::normalizeVSN or limma::normalizeMedianValues.
-#' @param condition_1 Manual override to the condition 1 for the differential comparison. By default it is guessed from unique(study_design$condition)
-#' @param condition_2 Manual override to the condition 2 for the differential comparison. By default it is guessed from unique(study_design$condition)
-#' @param min_n_obs Minimum number of observations per precursor (number of runs it was identified in)
-#' in order to keep in in the analysis
-#' @param imp_percentile Percentile of the total distribution of values on which the random
-#' distribution for sampling will be centered
-#' @param imp_sd standard deviation of the normal distribution from which values are sampled to impute missing values
-#' @param plot_pdf Document processing steps in a string of pdf graphs
-#' @param write_tsv_tables Write out final quant table with differential expression testing results
-#' @param target_protein Optional string with protein identifier to highlight in volcano plots
-#' @param verbose Logical, whether to print progress messages during analysis (default: TRUE)
+#' @details
+#' This function performs the following steps:
+#' 1. Log2 transformation
+#' 2. Optional normalization (quantile normalization by default)
+#' 3. Filtering based on minimum observations
+#' 4. Missing value imputation
+#' 5. Precursor-level t-tests
+#' 6. Protein-level rollup and multiple testing correction
 #'
-#' @return A diffExpr object (list) containing (access by x$ or by "x[[name]]")
-#' \itemize{
-#' \item data_source: input_dt path or input R object name
-#' \item data_long: Data in long format
-#' \item data_matrix_log2: Data, filtered and log2 transformed, in wide format matrix
-#' \item data_matrix_log2_imp: Data, filtered, log2 transformed and with missing values imputed, in wide format matrix
-#' \item study_design: study design table
-#' \item annotation_col: column annotation
-#' \item diffExpr_result_dt: Result table with intensities and differential expression testing results
-#' \item candidates_condition1: Proteins that appear higher abundant in condition 1
-#' \item candidates_condition2: Proteins that appear higher abundant in condition 2
-#' \item
+#' The returned ddata object has plot() and summary() methods for
+#' visualization and result exploration.
+#'
+#' @examples
+#' \dontrun{
+#' # Recommended workflow
+#' qdata <- importFromTables("data.tsv", study_design = "design.txt")
+#' ddata <- testDifferentialAbundance(qdata)
+#'
+#' # Interactive volcano plot
+#' plot(ddata, interactive = TRUE)
+#'
+#' # Static PDF volcano plot
+#' plot(ddata, interactive = FALSE)
+#'
+#' # Summary
+#' summary(ddata)
 #' }
 #'
 #' @author Moritz Heusel
@@ -58,18 +86,14 @@
 #'
 #' @export
 
-testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
-                                      protein_group_annotation = NULL,
-                                      study_design = "path/to/Study_design_filled.tsv",
-
+testDifferentialAbundance <- function(data,
                                       # toggle normalization & -function
                                       normalize_data = TRUE,
                                       normalization_function = limma::normalizeQuantiles,
-                                      # also try
 
                                       # select conditions to be compared
-                                      condition_1 = unique(fread(study_design)$condition)[2],
-                                      condition_2 = unique(fread(study_design)$condition)[1],
+                                      condition_1 = NULL,
+                                      condition_2 = NULL,
 
                                       # filtering options
                                       min_n_obs = 4,
@@ -83,7 +107,7 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
                                       write_tsv_tables = TRUE,
 
                                       # target protein highlight
-                                      target_protein = "O08760",
+                                      target_protein = NULL,
 
                                       # progress reporting
                                       verbose = TRUE)
@@ -98,82 +122,86 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
     print_analysis_header("DiffTestR: Differential Abundance Analysis")
   }
 
-  ## Processing
-  # load data
+  ## Handle different input types
   if (verbose) {
-    report_progress("Loading data", step = 1, total_steps = 8, verbose = verbose)
+    report_progress("Preparing data", step = 1, total_steps = 8, verbose = verbose)
   }
 
-  if (is.character(input_dt)){
-    data = fread(input_dt)
+  # Check if qdata object
+  if (inherits(data, "qdata")) {
+    # Extract from qdata object
     if (verbose) {
-      report_progress(sprintf("  Loaded %d precursors from file", nrow(data)),
+      report_progress("  Using qdata object", type = "info", verbose = verbose)
+    }
+
+    data_source <- data$source_file
+    data.s.wide <- data$data_wide
+    annotation <- as.data.table(data$ann_col)
+    protein_group_annotation <- unique(data$ann_row[, .(Protein.Group, Protein.Names)])
+    input_n_precursors <- nrow(data$data_wide)
+
+    # Prepare matrix and column names
+    data.s.wide.quant <- data$matrix_raw
+    annotation_col <- as.data.frame(annotation)
+    row.names(annotation_col) <- colnames(data.s.wide.quant)
+
+  } else if (is.character(data)) {
+    # Try to import the file
+    warning("Providing a file path directly is deprecated. Please use importFromTables() or importFromDIANN() first, then pass the qdata object.")
+
+    if (verbose) {
+      report_progress("  Attempting to import file with importFromTables()",
+                     type = "warning", verbose = verbose)
+    }
+
+    # Try to find study_design file in same directory
+    study_design_path <- file.path(dirname(data), "study_design.txt")
+    if (!file.exists(study_design_path)) {
+      study_design_path <- file.path(dirname(data), "Study_design.txt")
+    }
+    if (!file.exists(study_design_path)) {
+      stop("Cannot find study_design.txt in the same directory as the data file. Please import data using importFromTables() or importFromDIANN() first.")
+    }
+
+    # Import and recursively call this function
+    qdata_obj <- importFromTables(path_to_tsv = data,
+                                   study_design = study_design_path)
+    return(testDifferentialAbundance(
+      data = qdata_obj,
+      normalize_data = normalize_data,
+      normalization_function = normalization_function,
+      condition_1 = condition_1,
+      condition_2 = condition_2,
+      min_n_obs = min_n_obs,
+      imp_percentile = imp_percentile,
+      imp_sd = imp_sd,
+      plot_pdf = plot_pdf,
+      write_tsv_tables = write_tsv_tables,
+      target_protein = target_protein,
+      verbose = verbose
+    ))
+
+  } else {
+    # Legacy mode - data.table or data.frame
+    stop("Direct data.table/data.frame input is no longer supported. Please use importFromTables() or importFromDIANN() to create a qdata object first.")
+  }
+
+  # Auto-detect conditions if not provided
+  if (is.null(condition_1)) {
+    condition_1 <- unique(annotation$condition)[1]
+    if (verbose) {
+      report_progress(sprintf("  Auto-detected condition_1: %s", condition_1),
                      type = "info", verbose = verbose)
     }
-  }else {
-    data = as.data.table(input_dt)
+  }
+
+  if (is.null(condition_2)) {
+    condition_2 <- unique(annotation$condition)[2]
     if (verbose) {
-      report_progress(sprintf("  Loaded %d precursors from R object", nrow(data)),
+      report_progress(sprintf("  Auto-detected condition_2: %s", condition_2),
                      type = "info", verbose = verbose)
     }
   }
-
-  # Store input size for summary stats
-  input_n_precursors <- nrow(data)
-
-  if (is.character(study_design)){
-    annotation = fread(study_design)
-  }else {
-    annotation = as.data.table(study_design)
-  }
-
-  if (is.null(protein_group_annotation)){
-    # Try to retrieve protein annotation from input table
-    if("Protein.Names" %in% names(data)){
-      protein_group_annotation = unique(data[, .(Protein.Group, Protein.Names)])
-    } else {
-      data[, Protein.Names:=Protein.Group]
-      protein_group_annotation = unique(data[, .(Protein.Group, Protein.Names)])
-      warning("Protein.Names column is missing in input data\n
-      Protein.Group identifiers will be used, unless Protein.Group-to-Protein.Name mapping is provided via
-      protein_group_annotation table")
-    }
-  }
-
-  # Stop if annotation in study design is insufficient
-  if (!(all(c("filename","condition","replicate") %in% names(annotation)))){
-    stop("study design must contain columns filename,condition and replicate")
-  }
-
-  # subset to runs in annotation, allowing some flexibility for colname structure
-  if (sum(grep("\\\\", names(data)))>0)
-    {
-    names_split = sapply(names(data), function(x){unlist(strsplit(x, split = "\\\\"))[length(unlist(strsplit(x, split = "\\\\")))]})
-    if (sum(grep(".raw", names(data)))>0){
-      names_split = gsub(".raw", "", names_split)
-    }
-    names(data) = names_split
-  }
-
-  # Now get only the relevant columns
-  data.s.wide = cbind(data[, .(Protein.Group, Precursor.Id)],
-                      data[, which(names(data) %in% annotation$filename), with = F])
-
-  if(ncol(data.s.wide)<4){
-    stop("filename in study design must match column name in input_dt!")
-  }
-  annotation_col = data.table("cn" = names(data.s.wide)[3:ncol(data.s.wide)])
-  annotation_col = merge(annotation_col, annotation, by.x = "cn", by.y = "filename")
-  annotation_col[, new_cn:=paste(cn,condition,replicate)]
-  names(data.s.wide)[3:ncol(data.s.wide)] = annotation_col$new_cn
-  annotation_col = as.data.frame(annotation_col)
-  row.names(annotation_col) = annotation_col$new_cn
-  annotation_col$cn = NULL
-  annotation_col$new_cn = NULL
-
-  # Convert to matrix format
-  data.s.wide.quant = as.matrix(data.s.wide[,3:ncol(data.s.wide)])
-  row.names(data.s.wide.quant) = data.s.wide$Precursor.Id
 
   # log transform and remove inf
   if (verbose) {
@@ -413,8 +441,8 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
       stop("Index error, check ordering of precursors")
     }
   }
-  data.s.wide.quant.log2.qnorm.noNa.minObs.imp.cond1 = data.s.wide.quant.log2.qnorm.noNa.minObs.imp[, grep(condition_1, colnames(data.s.wide.quant.log2.qnorm.noNa.minObs.imp))]
-  data.s.wide.quant.log2.qnorm.noNa.minObs.imp.cond2 = data.s.wide.quant.log2.qnorm.noNa.minObs.imp[, grep(condition_2, colnames(data.s.wide.quant.log2.qnorm.noNa.minObs.imp))]
+  data.s.wide.quant.log2.qnorm.noNa.minObs.imp.cond1 = data.s.wide.quant.log2.qnorm.noNa.minObs.imp[, grep(condition_1, data$study_design$condition)]
+  data.s.wide.quant.log2.qnorm.noNa.minObs.imp.cond2 = data.s.wide.quant.log2.qnorm.noNa.minObs.imp[, grep(condition_2, data$study_design$condition)]
 
   # Start progress bar
   if (verbose) {
@@ -452,7 +480,11 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   res[, p_value_BHadj:=p.adjust(p_value, method = "BH")]
 
   # Visualize intermediate, precursor-level results in volcano plot
-  res[, target_prot:=grepl(target_protein, Protein.Group), Precursor.Id]
+  if (!is.null(target_protein)) {
+    res[, target_prot:=grepl(target_protein, Protein.Group), Precursor.Id]
+  } else {
+    res[, target_prot:=FALSE]
+  }
 
   res_v = ggplot(res, aes(x = log2_fold_change, y = -log10(p_value), col = target_prot)) + geom_point() +
     scale_color_manual(values = c("darkgrey", "red")) +
@@ -523,7 +555,7 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
   }
 
   names(data.s.long) = c("Precursor.Id", "filename", "Precursor.Quantity.log2", "normalization")
-  data.s.long = merge(data.s.long, unique(data[, .(Protein.Group, Precursor.Id)]), by = "Precursor.Id", all.x = T)
+  data.s.long = merge(data.s.long, unique(data.s.wide[, .(Protein.Group, Precursor.Id)]), by = "Precursor.Id", all.x = T)
   annotation[, colname_in_matrix:=paste(filename,condition,replicate)]
 
   # Calculate summary statistics
@@ -536,20 +568,21 @@ testDifferentialAbundance <- function(input_dt = "path/to/DIANN_matrix.tsv",
     study_design = annotation
   )
 
-  result_list = list("data_source" = if(is.character(input_dt)){input_dt}else{deparse(substitute(input_dt))},
+  result_list = list("data_source" = data_source,
+             "comparison" = paste0(condition_1, "/", condition_2),
+             "conditions" = list(condition_1 = condition_1, condition_2 = condition_2),
              "diffExpr_result_dt" = res,
              "mat_quant_log2_qnorm_imp_minObs" = data.s.wide.quant.log2.qnorm.noNa.minObs.imp,
              "mat_quant_log2_qnorm" = data.s.wide.quant.log2.qnorm,
              "mat_quant_log2" = data.s.wide.quant.log2,
              "mat_quant" = data.s.wide.quant,
              "study_design" = annotation,
-             "input_dt" = if(!is.character(input_dt)){input_dt}else{NULL},
              "summary_stats" = summary_stats,
              "candidates_condition1" = res[p_value_BHadj_protein<=0.01 & log2_fold_change >= 1],
              "candidates_condition2" = res[p_value_BHadj_protein<=0.01 & log2_fold_change <= -1])
 
-  # Add S3 class
-  class(result_list) <- c("diffExpr", "list")
+  # Add S3 class - now using ddata instead of diffExpr
+  class(result_list) <- c("ddata", "list")
 
   if (verbose) {
     report_progress("Analysis complete!", type = "success", verbose = verbose)

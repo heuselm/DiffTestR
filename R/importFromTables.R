@@ -68,6 +68,7 @@ importFromTables <- function(path_to_tsv = "../../04_DIANN_LfMS1/Table_precursor
 
 
   # Reformat to wide, save as matrix and assemble matrix row and column annotations
+  # Use only File.Name for column names (clean, matches study_design$filename)
   data.s.wide = data.table::dcast(data.s.long,
                                   Protein.Group+Precursor.Id~File.Name,
                                   value.var = "Precursor.Quantity",
@@ -76,10 +77,9 @@ importFromTables <- function(path_to_tsv = "../../04_DIANN_LfMS1/Table_precursor
   row.names(data.s.wide.m.raw) = data.s.wide$Precursor.Id
 
   # assemble annotations
-  ann_col = study_des
-  ann_col[, rn:=paste0(filename,condition,replicate, sep = "_"), filename]
-  row.names(ann_col) = ann_col$rn
-  ann_col$rn = NULL
+  # Row names should match matrix column names (which are filenames)
+  ann_col = copy(study_des)
+  row.names(ann_col) = ann_col$filename
 
   # Handle precursor annotation
   if (!is.null(precursor_annotation)) {

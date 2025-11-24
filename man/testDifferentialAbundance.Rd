@@ -5,87 +5,115 @@
 \title{Test Differential Protein Expression in MS proteomics data}
 \usage{
 testDifferentialAbundance(
-  input_dt = "path/to/DIANN_matrix.tsv",
-  protein_group_annotation = NULL,
-  study_design = "path/to/Study_design_filled.tsv",
+  data,
   normalize_data = TRUE,
   normalization_function = limma::normalizeQuantiles,
-  condition_1 = unique(fread(study_design)$condition)[2],
-  condition_2 = unique(fread(study_design)$condition)[1],
+  condition_1 = NULL,
+  condition_2 = NULL,
   min_n_obs = 4,
   imp_percentile = 0.001,
   imp_sd = 0.2,
   plot_pdf = TRUE,
   write_tsv_tables = TRUE,
-  target_protein = "O08760",
+  target_protein = NULL,
   verbose = TRUE
 )
 }
 \arguments{
-\item{input_dt}{Input data table either in tsv/txt format or already in R as data.table or data.frame with the following columns:
-#' The table should have the following columns:
-\itemize{
-\item Protein.Group: Semicolon-separated Uniprot IDs (or similar, as long as it matches)
-\item Precursor.Id: Unique Precursor Id for which the quantitative values are contained
-\item "filename": The file names of the MS raw data, must be identical to the entries in study_design$filename
-}
-Note: The data will be log2-transformed internally.}
+\item{data}{Either a qdata object (recommended) OR a path to a data file
+(will attempt to import). If a data.table/data.frame is provided, a
+deprecation warning is shown.}
 
-\item{protein_group_annotation}{Protein annotation table with columns Protein.Group and Protein.Names (and others if desired)
-that will be used to annotate the results. By default it is assumed to be a subset of and and an attempt will be made
-to extract it from the input_dt.}
+\item{normalize_data}{Whether or not data is scaled/normalized before
+differential testing. In some cases it might be preferable not to scale
+the datasets, e.g. when comparing pulldowns vs. input samples!
+Defaults to TRUE.}
 
-\item{study_design}{Study design in tab-separated .txt with mandatory columns:
-\itemize{
-\item filename: Must match quantitative data-containing column headers in the input_dt
-\item condition: String, biological condition (e.g. "treated" and "untreated")
-\item replicate: Replicate number (integer). Minimally 3 replicates are needed per condition for this type of analysis.
-}}
+\item{normalization_function}{Normalization function to use that transforms
+a matrix of quantities where columns are samples and rows are analytes.
+Defaults to limma::normalizeQuantiles, but can be replaced with any such
+function. Try limma::normalizeVSN or limma::normalizeMedianValues.}
 
-\item{normalize_data}{Whether or not data is scaled/normalized before differential testing. In some cases
-it might be preferable not to scale the datasets, e.g. when comparing pulldowns vs. input samples! Defaults to TRUE.}
+\item{condition_1}{First condition for the differential comparison. By
+default it is guessed from unique conditions in the qdata object.}
 
-\item{normalization_function}{Normalization function to use that transforms a matrix of quantities where columns are
-samples and rows are analytes. Defaults to limma:normalizeQuantiles, but can be replaced with any such function. You may want
-to try limma::normalizeVSN or limma::normalizeMedianValues.}
+\item{condition_2}{Second condition for the differential comparison. By
+default it is guessed from unique conditions in the qdata object.}
 
-\item{condition_1}{Manual override to the condition 1 for the differential comparison. By default it is guessed from unique(study_design$condition)}
+\item{min_n_obs}{Minimum number of observations per precursor (number of
+runs it was identified in) to keep it in the analysis (default: 4)}
 
-\item{condition_2}{Manual override to the condition 2 for the differential comparison. By default it is guessed from unique(study_design$condition)}
+\item{imp_percentile}{Percentile of the total distribution of values on
+which the random distribution for sampling will be centered (default: 0.001)}
 
-\item{min_n_obs}{Minimum number of observations per precursor (number of runs it was identified in)
-in order to keep in in the analysis}
+\item{imp_sd}{Standard deviation of the normal distribution from which
+values are sampled to impute missing values (default: 0.2)}
 
-\item{imp_percentile}{Percentile of the total distribution of values on which the random
-distribution for sampling will be centered}
+\item{plot_pdf}{Document processing steps in a series of pdf graphs
+(default: TRUE)}
 
-\item{imp_sd}{standard deviation of the normal distribution from which values are sampled to impute missing values}
+\item{write_tsv_tables}{Write out final quant table with differential
+expression testing results (default: TRUE)}
 
-\item{plot_pdf}{Document processing steps in a string of pdf graphs}
+\item{target_protein}{Optional string with protein identifier to highlight
+in volcano plots}
 
-\item{write_tsv_tables}{Write out final quant table with differential expression testing results}
-
-\item{target_protein}{Optional string with protein identifier to highlight in volcano plots}
-
-\item{verbose}{Logical, whether to print progress messages during analysis (default: TRUE)}
+\item{verbose}{Logical, whether to print progress messages during analysis
+(default: TRUE)}
 }
 \value{
-A diffExpr object (list) containing (access by x$ or by "x[\link{name}]")
+A ddata object (S3 class) containing differential expression results:
 \itemize{
-\item data_source: input_dt path or input R object name
-\item data_long: Data in long format
-\item data_matrix_log2: Data, filtered and log2 transformed, in wide format matrix
-\item data_matrix_log2_imp: Data, filtered, log2 transformed and with missing values imputed, in wide format matrix
-\item study_design: study design table
-\item annotation_col: column annotation
-\item diffExpr_result_dt: Result table with intensities and differential expression testing results
-\item candidates_condition1: Proteins that appear higher abundant in condition 1
-\item candidates_condition2: Proteins that appear higher abundant in condition 2
-\item
+\item data_source: Source file path
+\item comparison: String describing the comparison (e.g., "A/B")
+\item conditions: Named list with condition_1 and condition_2
+\item diffExpr_result_dt: Result table with intensities and statistics
+\item mat_quant_log2_qnorm_imp_minObs: Processed matrix (log2, normalized,
+imputed, filtered)
+\item mat_quant_log2_qnorm: Log2 normalized matrix
+\item mat_quant_log2: Log2 transformed matrix
+\item mat_quant: Raw intensity matrix
+\item study_design: Study design table
+\item candidates_condition1: Proteins higher in condition 1
+\item candidates_condition2: Proteins higher in condition 2
+\item summary_stats: Summary statistics of the analysis
 }
 }
 \description{
-Test Differential Protein Expression in MS proteomics data starting small: From the precursor level.
+Test Differential Protein Expression in MS proteomics data
+starting from the precursor level. This function now primarily accepts qdata
+objects from importFromDIANN() or importFromTables().
+}
+\details{
+This function performs the following steps:
+\enumerate{
+\item Log2 transformation
+\item Optional normalization (quantile normalization by default)
+\item Filtering based on minimum observations
+\item Missing value imputation
+\item Precursor-level t-tests
+\item Protein-level rollup and multiple testing correction
+}
+
+The returned ddata object has plot() and summary() methods for
+visualization and result exploration.
+}
+\examples{
+\dontrun{
+# Recommended workflow
+qdata <- importFromTables("data.tsv", study_design = "design.txt")
+ddata <- testDifferentialAbundance(qdata)
+
+# Interactive volcano plot
+plot(ddata, interactive = TRUE)
+
+# Static PDF volcano plot
+plot(ddata, interactive = FALSE)
+
+# Summary
+summary(ddata)
+}
+
 }
 \author{
 Moritz Heusel
