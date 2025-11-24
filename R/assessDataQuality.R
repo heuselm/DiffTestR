@@ -5,13 +5,17 @@
 #' and replicate correlation metrics. Includes leave-one-out CV analysis to
 #' identify outlier replicates.
 #'
-#' @param data_matrix Numeric matrix of log2-transformed intensities with
-#' precursors/peptides in rows and samples in columns
-#' @param study_design Data.table or data.frame with columns 'filename',
-#' 'condition', and 'replicate'. Rownames or 'filename' column must match
-#' column names in data_matrix
+#' @param data Either a qdata object (from importFromDIANN or importFromTables),
+#' OR a numeric matrix of log2-transformed intensities with precursors/peptides
+#' in rows and samples in columns
+#' @param study_design (Optional if data is qdata) Data.table or data.frame
+#' with columns 'filename', 'condition', and 'replicate'. Rownames or
+#' 'filename' column must match column names in data_matrix. Ignored if data
+#' is a qdata object.
 #' @param cv_threshold Threshold for flagging outlier replicates based on
 #' CV improvement upon removal (default: 0.3 = 30% improvement)
+#' @param log_transform If TRUE and data is qdata, log2-transform the raw
+#' matrix before analysis (default: TRUE)
 #' @param verbose Logical, whether to print progress messages (default: TRUE)
 #'
 #' @return A list with the following components:
@@ -33,21 +37,19 @@
 #'
 #' @examples
 #' \dontrun{
+#' # From qdata object
+#' qdata <- importFromTables("data.tsv", study_design = "design.txt")
+#' qc <- assessDataQuality(qdata)
+#'
+#' # From matrix and study design (legacy)
 #' data(DiffTestR_example_data_wide)
 #' data(DiffTestR_example_study_design)
-#'
-#' # Convert to matrix
 #' data_mat <- as.matrix(DiffTestR_example_data_wide[, 4:11])
 #' rownames(data_mat) <- DiffTestR_example_data_wide$Precursor.Id
-#'
-#' # Assess quality
 #' qc <- assessDataQuality(data_mat, DiffTestR_example_study_design)
 #'
 #' # View outlier replicates
 #' print(qc$outlier_replicates)
-#'
-#' # Plot CV distributions
-#' plot(qc$cv_stats$cv_distribution)
 #' }
 #'
 #' @author Moritz Heusel
@@ -56,17 +58,45 @@
 #' @importFrom stats cor median sd
 #'
 #' @export
-assessDataQuality <- function(data_matrix,
-                              study_design,
+assessDataQuality <- function(data,
+                              study_design = NULL,
                               cv_threshold = 0.3,
+                              log_transform = TRUE,
                               verbose = TRUE) {
 
-  # Validate inputs
-  if (!is.matrix(data_matrix)) {
-    stop("data_matrix must be a numeric matrix")
-  }
+  # Handle qdata objects
+  if (inherits(data, "qdata")) {
+    if (verbose) {
+      report_progress("Using qdata object for quality assessment", type = "info")
+    }
 
-  study_design <- as.data.table(study_design)
+    # Extract matrix and study design from qdata
+    data_matrix <- data$matrix_raw
+
+    # Log2 transform if requested
+    if (log_transform) {
+      if (verbose) {
+        report_progress("Log2-transforming raw intensities", type = "info")
+      }
+      data_matrix <- log2(data_matrix)
+      data_matrix[is.infinite(data_matrix)] <- NA
+    }
+
+    study_design <- as.data.table(data$ann_col)
+
+  } else {
+    # Legacy mode: matrix + study_design
+    if (!is.matrix(data)) {
+      stop("data must be either a qdata object or a numeric matrix")
+    }
+
+    if (is.null(study_design)) {
+      stop("study_design must be provided when data is a matrix")
+    }
+
+    data_matrix <- data
+    study_design <- as.data.table(study_design)
+  }
 
   # Ensure study design has required columns
   required_cols <- c("filename", "condition", "replicate")

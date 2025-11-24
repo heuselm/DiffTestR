@@ -5,22 +5,28 @@
 \title{Assess Proteomics Data Quality}
 \usage{
 assessDataQuality(
-  data_matrix,
-  study_design,
+  data,
+  study_design = NULL,
   cv_threshold = 0.3,
+  log_transform = TRUE,
   verbose = TRUE
 )
 }
 \arguments{
-\item{data_matrix}{Numeric matrix of log2-transformed intensities with
-precursors/peptides in rows and samples in columns}
+\item{data}{Either a qdata object (from importFromDIANN or importFromTables),
+OR a numeric matrix of log2-transformed intensities with precursors/peptides
+in rows and samples in columns}
 
-\item{study_design}{Data.table or data.frame with columns 'filename',
-'condition', and 'replicate'. Rownames or 'filename' column must match
-column names in data_matrix}
+\item{study_design}{(Optional if data is qdata) Data.table or data.frame
+with columns 'filename', 'condition', and 'replicate'. Rownames or
+'filename' column must match column names in data_matrix. Ignored if data
+is a qdata object.}
 
 \item{cv_threshold}{Threshold for flagging outlier replicates based on
 CV improvement upon removal (default: 0.3 = 30\% improvement)}
+
+\item{log_transform}{If TRUE and data is qdata, log2-transform the raw
+matrix before analysis (default: TRUE)}
 
 \item{verbose}{Logical, whether to print progress messages (default: TRUE)}
 }
@@ -50,21 +56,19 @@ a potential outlier.
 }
 \examples{
 \dontrun{
+# From qdata object
+qdata <- importFromTables("data.tsv", study_design = "design.txt")
+qc <- assessDataQuality(qdata)
+
+# From matrix and study design (legacy)
 data(DiffTestR_example_data_wide)
 data(DiffTestR_example_study_design)
-
-# Convert to matrix
 data_mat <- as.matrix(DiffTestR_example_data_wide[, 4:11])
 rownames(data_mat) <- DiffTestR_example_data_wide$Precursor.Id
-
-# Assess quality
 qc <- assessDataQuality(data_mat, DiffTestR_example_study_design)
 
 # View outlier replicates
 print(qc$outlier_replicates)
-
-# Plot CV distributions
-plot(qc$cv_stats$cv_distribution)
 }
 
 }
