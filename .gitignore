@@ -15,6 +15,10 @@ testData/results/*.tsv
 tests/testthat/*.tsv
 tests/testthat/*.png
 tests/testthat/*.pdf
+.claude
+.claude/*
+.claude/*/*
+
 
 # Large data files
 *.rda
