@@ -6,16 +6,20 @@
 \usage{
 importFromTables(
   path_to_tsv = "../../04_DIANN_LfMS1/Table_precursor_wide.txt",
-  precursor_annotation = "../../04_DIANN_LfMS1/Table_precursor_annotation.txt",
+  precursor_annotation = NULL,
   study_design = "../../04_DIANN_LfMS1/Study_design.txt"
 )
 }
 \arguments{
 \item{path_to_tsv}{Path to wide format result tsv file, with column
-names Protein.Group, Precursor.Id, filename1 filename2 etc}
+names Protein.Group, Precursor.Id, filename1 filename2 etc. Can also include
+annotation columns like Protein.Ids, Protein.Names, Genes, etc.}
 
-\item{precursor_annotation}{Tsv format table with columns Precursor.Id,
-Protein.Group and extended information required later on}
+\item{precursor_annotation}{Optional tsv format table with columns Precursor.Id,
+Protein.Group and extended information. If NULL (default), annotation columns
+will be extracted from path_to_tsv if available (e.g., Protein.Ids, Protein.Names,
+Genes, First.Protein.Description, Proteotypic, Stripped.Sequence, Modified.Sequence,
+Precursor.Charge). This parameter is typically not needed for DIA-NN output files.}
 
 \item{study_design}{Study design in tab-separated .txt with mandatory
 columns filename, condition, replicate}
