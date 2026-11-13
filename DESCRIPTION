@@ -7,14 +7,14 @@ Authors@R:
            role = c("aut", "cre"),
            email = "moritz.heusel@med.lu.se",
            comment = c(ORCID = "0000-0002-8506-530X"))
-Description: Convenience functions to test differential peptide and protein abundance from AP-DIA-MS datasets, from import over normalization, filtering based on frequency of observation to imputation of missing values and, finally, statistical differential expression testing on peptide- followed by rollup to protein level, 
-License: `use_mit_license()`
+Description: Convenience functions to test differential peptide and protein abundance from AP-DIA-MS datasets, from import over normalization, filtering based on frequency of observation to imputation of missing values and, finally, statistical differential expression testing on peptide- followed by rollup to protein level.
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 Depends: 
-    R (>= 3.50)
+    R (>= 3.5.0)
 Imports:
     data.table,
     ggplot2,
